@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 
-interface Velocity {
+export interface Velocity {
 	x: number;
 	y: number;
 	z: number;
 }
 
-interface Position {
+export interface Position {
 	x: number;
 	y: number;
 	z: number;

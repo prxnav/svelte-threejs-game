@@ -1,15 +1,15 @@
 <script lang="ts">
 	import * as THREE from 'three';
 	import { onMount } from 'svelte';
-	import { Box, boxCollision } from '../objects/box';
+	import { Box, boxCollision, type Velocity } from '../objects/box';
 	import { ObjectManager } from '../object-manager';
 	let renderer: THREE.WebGLRenderer, camera: THREE.Camera;
 
 	let frames = 0;
 	let spawnRate = 200;
-	const manager = new ObjectManager();
-	let cube: Box;
-	let companionCube: Box;
+
+	// let cube: Box;
+	// let companionCube: Box;
 	let scene: THREE.Scene;
 
 	const ground = new Box({
@@ -44,16 +44,11 @@
 	light.position.y = 3;
 	light.position.z = 1;
 	light.castShadow = true;
-
-	manager.onCubeCreated((_cube, event) => {
-		if (event.type === 'companion') {
-			companionCube = _cube;
-		} else {
-			cube = _cube;
-		}
-		scene.add(cube);
+	const manager = new ObjectManager(ground);
+	manager.onCubeCreated((_cube) => {
+		scene.add(_cube);
 	});
-
+	const selfVelocity: Velocity = { x: 0, y: 0, z: 0 };
 	onMount(() => {
 		{
 			scene = new THREE.Scene();
@@ -88,7 +83,7 @@
 						keys.w.pressed = true;
 						break;
 					case 'Space':
-						cube.velocity.y = 0.09;
+						selfVelocity.y = 0.09;
 						break;
 				}
 			});
@@ -115,51 +110,28 @@
 				renderer.render(scene, camera);
 
 				//movement code
-				cube.velocity.x = 0;
-				cube.velocity.z = 0;
-				if (keys.a.pressed) cube.velocity.x = -0.05;
-				else if (keys.d.pressed) cube.velocity.x = 0.05;
 
-				if (keys.s.pressed) cube.velocity.z = 0.05;
-				else if (keys.w.pressed) cube.velocity.z = -0.05;
+				selfVelocity.x = 0;
+				selfVelocity.z = 0;
 
-				cube.update(ground);
+				if (keys.a.pressed) selfVelocity.x = -0.05;
+				else if (keys.d.pressed) selfVelocity.x = 0.05;
+
+				if (keys.s.pressed) selfVelocity.z = 0.05;
+				else if (keys.w.pressed) selfVelocity.z = -0.05;
 
 				enemies.forEach((enemy) => {
 					enemy.update(ground);
-					if (
-						boxCollision({
-							box1: cube,
-							box2: enemy
-						})
-					) {
-						cancelAnimationFrame(animationId);
-					}
+					// if (
+					// 	boxCollision({
+					// 		box1: cube,
+					// 		box2: enemy
+					// 	})
+					// ) {
+					// 	cancelAnimationFrame(animationId);
+					// }
 				});
-
-				if (frames % spawnRate === 0) {
-					if (spawnRate > 20) spawnRate -= 20;
-					const enemy = new Box({
-						width: 1,
-						height: 1,
-						depth: 1,
-						position: {
-							x: (Math.random() - 0.5) * 10,
-							y: 0,
-							z: -20
-						},
-						velocity: {
-							x: 0,
-							y: -0.01,
-							z: 0.005
-						},
-						color: 'red',
-						zAcceleration: true
-					});
-					enemy.castShadow = true;
-					scene.add(enemy);
-					enemies.push(enemy);
-				}
+				manager.updateCube('self', selfVelocity);
 
 				frames++;
 			}

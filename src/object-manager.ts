@@ -1,4 +1,4 @@
-import { Box } from './objects/box';
+import { Box, type Velocity } from './objects/box';
 
 type CB = 'cubeCreated';
 interface CubeEvent {
@@ -10,7 +10,7 @@ export class ObjectManager {
 	companionBox: Box | undefined;
 	enemies: Box[];
 
-	constructor() {
+	constructor(private ground: Box) {
 		this.enemies = [];
 		this.callbacks = {
 			cubeCreated: new Set()
@@ -29,10 +29,16 @@ export class ObjectManager {
 			}
 		});
 		cube.castShadow = true;
+		this.selfBox = cube;
 		this.callbacks.cubeCreated.forEach((cb) => cb(cube, { type: 'self' }));
 	}
 
-	updateCube(which: 'self' | 'companion') {}
+	updateCube(which: 'self' | 'companion', velocity: Velocity) {
+		if (which === 'self') {
+			this.selfBox!.velocity = velocity;
+			this.selfBox?.update(this.ground);
+		}
+	}
 
 	onCubeCreated(callback: (box: Box, event: CubeEvent) => void) {
 		this.callbacks.cubeCreated.add(callback);
