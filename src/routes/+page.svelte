@@ -49,95 +49,87 @@
 		scene.add(_cube);
 	});
 	const selfVelocity: Velocity = { x: 0, y: 0, z: 0 };
+
 	onMount(() => {
-		{
-			scene = new THREE.Scene();
-			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-			camera.position.set(4.61, 2.74, 8);
-			camera.position.z = 5;
-
-			renderer = new THREE.WebGLRenderer({
-				alpha: true,
-				antialias: true
-			});
-			renderer.shadowMap.enabled = true;
-			renderer.setSize(window.innerWidth, window.innerHeight);
-			document.getElementById('canvas')!.appendChild(renderer.domElement);
-
-			scene.add(ground);
-			scene.add(light);
-			scene.add(new THREE.AmbientLight(0xffffff, 0.3));
-
-			window.addEventListener('keydown', (e) => {
-				switch (e.code) {
-					case 'KeyA':
-						keys.a.pressed = true;
-						break;
-					case 'KeyD':
-						keys.d.pressed = true;
-						break;
-					case 'KeyS':
-						keys.s.pressed = true;
-						break;
-					case 'KeyW':
-						keys.w.pressed = true;
-						break;
-					case 'Space':
-						selfVelocity.y = 0.09;
-						break;
-				}
-			});
-			window.addEventListener('keyup', (e) => {
-				switch (e.code) {
-					case 'KeyA':
-						keys.a.pressed = false;
-						break;
-					case 'KeyD':
-						keys.d.pressed = false;
-						break;
-					case 'KeyS':
-						keys.s.pressed = false;
-						break;
-					case 'KeyW':
-						keys.w.pressed = false;
-						break;
-				}
-			});
-
-			const enemies: Box[] = [];
-			function animate() {
-				const animationId = requestAnimationFrame(animate); //store id of each frame
-				renderer.render(scene, camera);
-
-				//movement code
-
-				selfVelocity.x = 0;
-				selfVelocity.z = 0;
-
-				if (keys.a.pressed) selfVelocity.x = -0.05;
-				else if (keys.d.pressed) selfVelocity.x = 0.05;
-
-				if (keys.s.pressed) selfVelocity.z = 0.05;
-				else if (keys.w.pressed) selfVelocity.z = -0.05;
-
-				enemies.forEach((enemy) => {
-					enemy.update(ground);
-					// if (
-					// 	boxCollision({
-					// 		box1: cube,
-					// 		box2: enemy
-					// 	})
-					// ) {
-					// 	cancelAnimationFrame(animationId);
-					// }
-				});
-				manager.updateCube('self', selfVelocity);
-
-				frames++;
+		window.addEventListener('keydown', (e) => {
+			switch (e.code) {
+				case 'KeyA':
+					keys.a.pressed = true;
+					break;
+				case 'KeyD':
+					keys.d.pressed = true;
+					break;
+				case 'KeyS':
+					keys.s.pressed = true;
+					break;
+				case 'KeyW':
+					keys.w.pressed = true;
+					break;
+				case 'Space':
+					selfVelocity.y = 0.09;
+					break;
 			}
-			manager.init();
-			animate();
+		});
+		window.addEventListener('keyup', (e) => {
+			switch (e.code) {
+				case 'KeyA':
+					keys.a.pressed = false;
+					break;
+				case 'KeyD':
+					keys.d.pressed = false;
+					break;
+				case 'KeyS':
+					keys.s.pressed = false;
+					break;
+				case 'KeyW':
+					keys.w.pressed = false;
+					break;
+			}
+		});
+	});
+
+	onMount(() => {
+		scene = new THREE.Scene();
+		camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+		camera.position.set(4.61, 2.74, 8);
+		camera.position.z = 5;
+
+		renderer = new THREE.WebGLRenderer({
+			alpha: true,
+			antialias: true
+		});
+		renderer.shadowMap.enabled = true;
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		document.getElementById('canvas')!.appendChild(renderer.domElement);
+
+		scene.add(ground);
+		scene.add(light);
+		scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+	});
+	onMount(() => {
+		function animate() {
+			const animationId = requestAnimationFrame(animate); //store id of each frame
+			renderer.render(scene, camera);
+
+			//movement code
+
+			selfVelocity.x = 0;
+			selfVelocity.z = 0;
+
+			if (keys.a.pressed) selfVelocity.x = -0.05;
+			else if (keys.d.pressed) selfVelocity.x = 0.05;
+
+			if (keys.s.pressed) selfVelocity.z = 0.05;
+			else if (keys.w.pressed) selfVelocity.z = -0.05;
+
+			if (manager.updateCube('self', selfVelocity)) {
+				cancelAnimationFrame(animationId);
+			}
+
+			frames++;
 		}
+		manager.init();
+		animate();
 	});
 </script>
 
