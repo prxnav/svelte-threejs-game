@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { Box, boxCollision, type Velocity } from '../objects/box';
 	import { ObjectManager } from '../object-manager';
+	import { io } from 'socket.io-client';
+	import { page } from '$app/stores';
 	let renderer: THREE.WebGLRenderer, camera: THREE.Camera;
 
 	let frames = 0;
@@ -44,12 +46,12 @@
 	light.position.y = 3;
 	light.position.z = 1;
 	light.castShadow = true;
-	const manager = new ObjectManager(ground);
+	const room = new URLSearchParams($page.url.hash.substring(1)).get('roomId');
+	const manager = new ObjectManager(ground, room);
 	manager.onCubeCreated((_cube) => {
 		scene.add(_cube);
 	});
 	const selfVelocity: Velocity = { x: 0, y: 0, z: 0 };
-
 	onMount(() => {
 		window.addEventListener('keydown', (e) => {
 			switch (e.code) {
@@ -109,6 +111,7 @@
 	onMount(() => {
 		function animate() {
 			const animationId = requestAnimationFrame(animate); //store id of each frame
+			if (!manager.ready) return;
 			renderer.render(scene, camera);
 
 			//movement code

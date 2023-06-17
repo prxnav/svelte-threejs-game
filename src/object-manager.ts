@@ -1,4 +1,6 @@
 import { Box, type Velocity, boxCollision } from './objects/box';
+import io, { type Socket } from 'socket.io-client';
+const WEBSOCKET_URL = 'ws://localhost:8000';
 
 type CB = 'cubeCreated';
 interface CubeEvent {
@@ -9,16 +11,17 @@ export class ObjectManager {
 	selfBox: Box | undefined;
 	companionBox: Box | undefined;
 	enemies: Box[];
-
 	_spawnRate: number;
 	_frames: number;
-	constructor(private ground: Box) {
+	socket: Socket;
+	constructor(private ground: Box, private room: string | null) {
 		this._spawnRate = 200;
 		this._frames = 0;
 		this.enemies = [];
 		this.callbacks = {
 			cubeCreated: new Set()
 		};
+		this.socket = io(WEBSOCKET_URL);
 	}
 
 	_createEnemy() {
@@ -45,61 +48,56 @@ export class ObjectManager {
 	}
 
 	init() {
-		const cube = new Box({
-			width: 1,
-			height: 1,
-			depth: 1,
-			velocity: {
-				x: 0,
-				y: -0.01,
-				z: 0
+		this.socket.on('init', () => {
+			if (this.room) {
+				this.socket.emit('join-room', { id: this.room });
+			} else {
+				this.socket.emit('create-room', {});
 			}
 		});
 
-		const companionCube = new Box({
-			width: 1,
-			height: 1,
-			depth: 1,
-			velocity: {
-				x: 0,
-				y: -0.01,
-				z: 0
-			},
-			position: {
-				x: (Math.random() - 0.5) * 10,
-				y: 0,
-				z: 0
-			},
-			color: 'blue'
+		this.socket.on('room-joined', ({ roomID, box }) => {
+			let cube = (this.selfBox = new Box(box));
+			this.callbacks.cubeCreated.forEach((cb) => cb(cube, { type: 'self' }));
+			cube.castShadow = true;
+			location.hash = '#roomId=' + roomID;
 		});
-		cube.castShadow = true;
-		this.selfBox = cube;
-		this.callbacks.cubeCreated.forEach((cb) => cb(cube, { type: 'self' }));
-		this.callbacks.cubeCreated.forEach((cb) => cb(companionCube, { type: 'companion' }));
+		this.socket.on('new-enemy', ({ enemy }) => {
+			const enemyCube = new Box(enemy);
+			this.enemies.push(enemyCube);
+			this.callbacks.cubeCreated.forEach((cb) => cb(enemyCube, { type: 'enemy' }));
+		});
 	}
 
 	updateCube(which: 'self' | 'companion', velocity: Velocity) {
+		let crashed: boolean = false;
 		if (which === 'self') {
 			this.selfBox!.velocity = velocity;
 			this.selfBox!.update(this.ground);
-			let crashed = this.enemies.some((enemy) => {
+
+			crashed = this.enemies.some((enemy) => {
 				enemy.update(this.ground);
 				return boxCollision({
 					box1: this.selfBox!,
 					box2: enemy
 				});
 			});
-			if (this._frames % this._spawnRate === 0) {
-				if (this._spawnRate > 20) this._spawnRate -= 20;
-				const enemy = this._createEnemy();
-				this.callbacks.cubeCreated.forEach((cb) => cb(enemy, { type: 'enemy' }));
-			}
-			this._frames++;
-			return crashed;
 		}
+
+		// if (this._frames % this._spawnRate === 0) {
+		// 	if (this._spawnRate > 20) this._spawnRate -= 20;
+		// 	const enemy = this._createEnemy();
+		// 	this.callbacks.cubeCreated.forEach((cb) => cb(enemy, { type: 'enemy' }));
+		// }
+		// this._frames++;
+		return crashed;
 	}
 
 	onCubeCreated(callback: (box: Box, event: CubeEvent) => void) {
 		this.callbacks.cubeCreated.add(callback);
+	}
+
+	public get ready() {
+		return !!this.selfBox;
 	}
 }
