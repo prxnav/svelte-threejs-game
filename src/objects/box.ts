@@ -92,7 +92,16 @@ export class Box extends THREE.Mesh {
 
 		this.applyGravity(ground);
 	}
-
+	get json() {
+		return {
+			width: this.width,
+			height: this.height,
+			depth: this.depth,
+			position: this.position,
+			velocity: this.velocity,
+			zAcceleration: this.zAcceleration
+		};
+	}
 	applyGravity(ground: Box) {
 		this.velocity.y += this.gravity;
 

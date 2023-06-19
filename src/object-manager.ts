@@ -14,6 +14,7 @@ export class ObjectManager {
 	_spawnRate: number;
 	_frames: number;
 	socket: Socket;
+	_selfId: string | undefined;
 	constructor(private ground: Box, private room: string | null) {
 		this._spawnRate = 200;
 		this._frames = 0;
@@ -48,7 +49,8 @@ export class ObjectManager {
 	}
 
 	init() {
-		this.socket.on('init', () => {
+		this.socket.on('init', ({ id }) => {
+			this._selfId = id;
 			if (this.room) {
 				this.socket.emit('join-room', { id: this.room });
 			} else {
@@ -67,6 +69,26 @@ export class ObjectManager {
 			this.enemies.push(enemyCube);
 			this.callbacks.cubeCreated.forEach((cb) => cb(enemyCube, { type: 'enemy' }));
 		});
+
+		this.socket.on('new-companion', ({ id, box }) => {
+			if (id === this._selfId) return;
+			let cube = (this.companionBox = new Box({ ...box, color: 'blue' }));
+			this.callbacks.cubeCreated.forEach((cb) => cb(cube, { type: 'companion' }));
+			cube.castShadow = true;
+			this.companionBox!.update(this.ground);
+		});
+
+		this.socket.on('get-position', ({ id, velocity, box }) => {
+			if (id === this._selfId) return;
+			const noCube = !this.companionBox;
+			let cube = this.companionBox ?? (this.companionBox = new Box({ ...box, color: 'blue' }));
+			cube.velocity = velocity;
+			if (noCube) {
+				this.callbacks.cubeCreated.forEach((cb) => cb(cube, { type: 'companion' }));
+			}
+			cube.castShadow = true;
+			this.companionBox!.update(this.ground);
+		});
 	}
 
 	updateCube(which: 'self' | 'companion', velocity: Velocity) {
@@ -74,7 +96,7 @@ export class ObjectManager {
 		if (which === 'self') {
 			this.selfBox!.velocity = velocity;
 			this.selfBox!.update(this.ground);
-
+			this.socket.emit('update-position', { velocity, box: this.selfBox?.json });
 			crashed = this.enemies.some((enemy) => {
 				enemy.update(this.ground);
 				return boxCollision({
@@ -82,6 +104,7 @@ export class ObjectManager {
 					box2: enemy
 				});
 			});
+		} else {
 		}
 
 		// if (this._frames % this._spawnRate === 0) {
