@@ -1,6 +1,6 @@
 import { Box, type Velocity, boxCollision } from './objects/box';
 import io, { type Socket } from 'socket.io-client';
-const WEBSOCKET_URL = 'ws://localhost:8000';
+const WEBSOCKET_URL = 'wss://purple-shape-821.fly.dev/';
 
 type CB = 'cubeCreated';
 interface CubeEvent {
@@ -22,7 +22,7 @@ export class ObjectManager {
 		this.callbacks = {
 			cubeCreated: new Set()
 		};
-		this.socket = io(WEBSOCKET_URL);
+		this.socket = io(WEBSOCKET_URL, { transports: ['websocket'] });
 	}
 
 	_createEnemy() {
